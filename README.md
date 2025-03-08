@@ -1,13 +1,20 @@
-# Blackbox - Discord Music Player
+# <div align="center">Blackbox - Discord Music Player</div>
 
-![Blackbox Banner](https://techstarwebsolutions.com/images/static.png)
+<div align="center">
+  <img src="https://techstarwebsolutions.com/images/static.png" alt="Blackbox Banner">
+</div>
 
-[![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
-[![Node.js](https://img.shields.io/badge/Node.js-43853D?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org/)
-[![Discord](https://img.shields.io/badge/Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.js.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
+<div align="center">
+  <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript"><img src="https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black" alt="JavaScript"></a>
+  <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/Node.js-43853D?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js"></a>
+  <a href="https://discord.js.org/"><img src="https://img.shields.io/badge/Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord"></a>
+  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge" alt="License: MIT"></a>
+</div>
 
-Blackbox is an open-source Discord bot that plays music files from a server folder. Instead of streaming from external sources, Blackbox manages a local library of audio files organized by genre.
+<div align="center">
+  <p>Blackbox is an open-source Discord bot that plays music files from a server folder. Instead of streaming from external sources, Blackbox manages a local library of audio files organized by genre.</p>
+</div>
+
 
 ## Features
 
