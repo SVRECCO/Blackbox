@@ -30,7 +30,7 @@
 
 1. Clone the repository
    ```bash
-   git clone https://github.com/yourusername/blackbox.git
+   git clone https://github.com/SVRECCO/blackbox.git
    cd blackbox
    ```
 
