@@ -12,7 +12,7 @@
 </div>
 
 <div align="center">
-  <p>Blackbox is an open-source Discord bot that plays music files from a server folder. Instead of streaming from external sources, Blackbox manages a local library of audio files organized by genre.</p>
+  <p>Blackbox is an open-source Discord bot that plays music files from a server folder. Instead of streaming from external sources, Blackbox manages a local library of audio files organized by genre!</p>
 </div>
 
 
