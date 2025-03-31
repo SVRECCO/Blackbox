@@ -59,7 +59,7 @@
 4. Invite the bot to your server with proper permissions
 5. Create a DJ role in your server and copy its ID (optional)
 6. Update your `.env` file with your bot token and DJ role ID
-7. Run the bot
+7. Run the bot using `node index.js`
 
 ## Commands
 
