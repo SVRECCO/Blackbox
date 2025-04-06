@@ -30,7 +30,7 @@
 
 1. Clone the repository
    ```bash
-   git clone https://github.com/yourusername/blackbox.git
+   git clone https://github.com/SVRECCO/blackbox.git
    cd blackbox
    ```
 
@@ -48,7 +48,7 @@
 
 4. Start the bot
    ```bash
-   npm start
+   node index.js
    ```
 
 ## Setup
@@ -59,7 +59,7 @@
 4. Invite the bot to your server with proper permissions
 5. Create a DJ role in your server and copy its ID (optional)
 6. Update your `.env` file with your bot token and DJ role ID
-7. Run the bot
+7. Run the bot using `node index.js`
 
 ## Commands
 
