@@ -6,10 +6,26 @@ const st = {
  player: null,
  isPlaying: false,
  queue: [],
+ loopMode: false,
+ loopGenre: null,
+ loopFiles: [],
 };
 async function nxt(vc, int) {
  if (st.queue.length > 0) {
   st.isPlaying = true;
+  const trk = st.queue.shift();
+  await ply(vc, trk.path, int, trk.requester, trk.genre);
+ } else if (st.loopMode && st.loopFiles.length > 0) {
+  st.isPlaying = true;
+
+  for (const file of st.loopFiles) {
+   st.queue.push({
+    path: pth.join(a_f, st.loopGenre, file),
+    requester: int.user,
+    genre: st.loopGenre,
+   });
+  }
+
   const trk = st.queue.shift();
   await ply(vc, trk.path, int, trk.requester, trk.genre);
  } else {

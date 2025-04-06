@@ -37,6 +37,31 @@ const cmd = [
   ],
  },
  {
+  name: "playall",
+  description: "Play all audio files from a genre",
+  options: [
+   {
+    name: "genre",
+    description: "The genre to play all songs from",
+    type: djs.ApplicationCommandOptionType.String,
+    required: true,
+    choices: g_s.map((g) => ({ name: g, value: g })),
+   },
+   {
+    name: "shuffle",
+    description: "Shuffle the songs before playing",
+    type: djs.ApplicationCommandOptionType.Boolean,
+    required: false,
+   },
+   {
+    name: "loop",
+    description: "Loop the playlist when finished",
+    type: djs.ApplicationCommandOptionType.Boolean,
+    required: false,
+   },
+  ],
+ },
+ {
   name: "upload",
   description: "Upload an audio file",
   options: [
@@ -123,6 +148,86 @@ async function handleCommands(int) {
     ephemeral: true,
    });
   }
+ } else if (commandName === "playall") {
+  const genre = options.getString("genre");
+  const shuffle = options.getBoolean("shuffle") || false;
+  const loop = options.getBoolean("loop") || false;
+  const vc = int.member.voice.channel;
+
+  if (!vc) {
+   return int.reply({
+    content: "You need to be in a voice channel to play audio!",
+    ephemeral: true,
+   });
+  }
+
+  try {
+   await int.deferReply({ ephemeral: true });
+   const genrePath = pth.join(a_f, genre);
+
+   if (!fs.existsSync(genrePath)) {
+    return int.followUp({
+     content: `The genre folder "${genre}" does not exist.`,
+     ephemeral: true,
+    });
+   }
+
+   const files = fs.readdirSync(genrePath);
+   const audioFiles = files.filter((file) => {
+    const ext = pth.extname(file).toLowerCase();
+    return [".mp3", ".wav", ".ogg", ".flac", ".m4a"].includes(ext);
+   });
+
+   if (audioFiles.length === 0) {
+    return int.followUp({
+     content: `No audio files found in the "${genre}" genre.`,
+     ephemeral: true,
+    });
+   }
+
+   if (shuffle) {
+    for (let i = audioFiles.length - 1; i > 0; i--) {
+     const j = Math.floor(Math.random() * (i + 1));
+     [audioFiles[i], audioFiles[j]] = [audioFiles[j], audioFiles[i]];
+    }
+   }
+
+   if (loop) {
+    st.loopMode = true;
+    st.loopGenre = genre;
+    st.loopFiles = [...audioFiles];
+   } else {
+    st.loopMode = false;
+    st.loopGenre = null;
+    st.loopFiles = [];
+   }
+
+   for (const file of audioFiles) {
+    st.queue.push({
+     path: pth.join(genrePath, file),
+     requester: int.user,
+     genre: genre,
+    });
+   }
+
+   int.followUp({
+    content: `Added ${audioFiles.length} ${genre} songs to the queue${
+     shuffle ? " (shuffled)" : ""
+    }${loop ? " (looping enabled)" : ""}.`,
+    ephemeral: true,
+   });
+
+   if (!st.isPlaying) {
+    nxt(vc, int);
+   }
+  } catch (e) {
+   console.error("Error in playall command:", e);
+   int.followUp({
+    content:
+     "An error occurred while processing your request. Please try again later.",
+    ephemeral: true,
+   });
+  }
  } else if (commandName === "upload") {
   const f = options.getAttachment("file");
   const gen = options.getString("genre");
@@ -191,23 +296,26 @@ async function handleCommands(int) {
   });
  } else if (commandName === "stop") {
   if (!st.player && st.queue.length === 0) {
-   return int.reply({
-    content: "There is no audio playing or in the queue.",
-    ephemeral: true,
-   });
+    return int.reply({
+      content: "There is no audio playing or in the queue.",
+      ephemeral: true,
+    });
   }
   if (st.player) {
-   st.player.stop();
+    st.player.stop();
   }
   st.queue.length = 0;
+  st.loopMode = false;
+  st.loopGenre = null;
+  st.loopFiles = [];
   int.client.user.setPresence({
-   activities: [
-    { name: "Nothing is currently playing", type: djs.ActivityType.Listening },
-   ],
+    activities: [
+      { name: "Nothing is currently playing", type: djs.ActivityType.Listening },
+    ],
   });
   int.reply({
-   content: "Stopped the current audio and cleared the queue.",
-   ephemeral: true,
+    content: "Stopped the current audio and cleared the queue.",
+    ephemeral: true,
   });
  } else if (commandName === "skip") {
   if (!st.player) {
