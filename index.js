@@ -2,11 +2,7 @@ require("dotenv").config();
 const djs = require("discord.js");
 const fs = require("fs");
 const pth = require("path");
-const {
- handleCommands,
- GENRES: g_s,
- AUDIO_FOLDER: a_f,
-} = require("./commands");
+const { handleCommands, AUDIO_FOLDER: a_f } = require("./commands");
 const bot = new djs.Client({
  intents: [
   djs.GatewayIntentBits.Guilds,
@@ -14,12 +10,6 @@ const bot = new djs.Client({
   djs.GatewayIntentBits.GuildVoiceStates,
   djs.GatewayIntentBits.MessageContent,
  ],
-});
-g_s.forEach((gen) => {
- const dir = pth.join(a_f, gen);
- if (!fs.existsSync(dir)) {
-  fs.mkdirSync(dir, { recursive: true });
- }
 });
 bot.once("ready", async () => {
  console.log(`Bot is ready! Logged in as ${bot.user.tag}`);
@@ -32,7 +22,7 @@ bot.on("interactionCreate", async (int) => {
   if (int.commandName === "play") {
    const opt = int.options.getFocused(true);
    if (opt.name === "filename") {
-    const gen = int.options.getString("genre");
+    const gen = int.options.getString("genre") || "";
     const val = opt.value;
     const dir = pth.join(a_f, gen);
     if (fs.existsSync(dir)) {

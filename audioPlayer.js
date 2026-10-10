@@ -1,6 +1,7 @@
 const v = require("@discordjs/voice");
 const djs = require("discord.js");
 const pth = require("path");
+const a_f = process.env.AUDIO_FOLDER || "./audio";
 const { addDJRole: add_dj, removeDJRole: rm_dj } = require("./utils");
 const st = {
  player: null,

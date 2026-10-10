@@ -21,18 +21,18 @@ const cmd = [
   description: "Play a local audio file",
   options: [
    {
-    name: "genre",
-    description: "The genre of the song",
-    type: djs.ApplicationCommandOptionType.String,
-    required: true,
-    choices: g_s.map((g) => ({ name: g, value: g })),
-   },
-   {
     name: "filename",
     description: "The name of the audio file to play",
     type: djs.ApplicationCommandOptionType.String,
     required: true,
     autocomplete: true,
+   },
+   {
+    name: "genre",
+    description: "Genre subfolder (leave empty for the main audio folder)",
+    type: djs.ApplicationCommandOptionType.String,
+    required: false,
+    choices: g_s.map((g) => ({ name: g, value: g })),
    },
   ],
  },
@@ -42,9 +42,9 @@ const cmd = [
   options: [
    {
     name: "genre",
-    description: "The genre to play all songs from",
+    description: "Genre subfolder (leave empty for the main audio folder)",
     type: djs.ApplicationCommandOptionType.String,
-    required: true,
+    required: false,
     choices: g_s.map((g) => ({ name: g, value: g })),
    },
    {
@@ -73,9 +73,9 @@ const cmd = [
    },
    {
     name: "genre",
-    description: "The genre of the song",
+    description: "Genre subfolder (leave empty for the main audio folder)",
     type: djs.ApplicationCommandOptionType.String,
-    required: true,
+    required: false,
     choices: g_s.map((g) => ({ name: g, value: g })),
    },
   ],
@@ -104,7 +104,7 @@ const cmd = [
 async function handleCommands(int) {
  const { commandName, options } = int;
  if (commandName === "play") {
-  const gen = options.getString("genre");
+  const gen = options.getString("genre") || "";
   const fn = options.getString("filename");
   if (!fn) {
    return int.reply({
@@ -134,7 +134,7 @@ async function handleCommands(int) {
     genre: gen,
    });
    int.followUp({
-    content: `Added "${fn}" (${gen}) to the queue.`,
+    content: `Added "${fn}" (${gen || "main folder"}) to the queue.`,
     ephemeral: true,
    });
    if (!st.isPlaying) {
@@ -149,7 +149,7 @@ async function handleCommands(int) {
    });
   }
  } else if (commandName === "playall") {
-  const genre = options.getString("genre");
+  const genre = options.getString("genre") || "";
   const shuffle = options.getBoolean("shuffle") || false;
   const loop = options.getBoolean("loop") || false;
   const vc = int.member.voice.channel;
@@ -167,7 +167,7 @@ async function handleCommands(int) {
 
    if (!fs.existsSync(genrePath)) {
     return int.followUp({
-     content: `The genre folder "${genre}" does not exist.`,
+     content: `The folder "${pth.join(a_f, genre)}" does not exist.`,
      ephemeral: true,
     });
    }
@@ -180,7 +180,7 @@ async function handleCommands(int) {
 
    if (audioFiles.length === 0) {
     return int.followUp({
-     content: `No audio files found in the "${genre}" genre.`,
+     content: `No audio files found in "${genre || "the main folder"}".`,
      ephemeral: true,
     });
    }
@@ -211,7 +211,7 @@ async function handleCommands(int) {
    }
 
    int.followUp({
-    content: `Added ${audioFiles.length} ${genre} songs to the queue${
+    content: `Added ${audioFiles.length} ${genre || "main folder"} songs to the queue${
      shuffle ? " (shuffled)" : ""
     }${loop ? " (looping enabled)" : ""}.`,
     ephemeral: true,
@@ -230,7 +230,7 @@ async function handleCommands(int) {
   }
  } else if (commandName === "upload") {
   const f = options.getAttachment("file");
-  const gen = options.getString("genre");
+  const gen = options.getString("genre") || "";
   if (!f) {
    return int.reply({
     content: "Please provide an audio file to upload.",
@@ -258,7 +258,7 @@ async function handleCommands(int) {
     ws.on("finish", () => {
      ws.close();
      int.followUp({
-      content: `File "${fn}" has been uploaded successfully to the ${gen} genre!`,
+      content: `File "${fn}" has been uploaded successfully to ${gen || "the main folder"}!`,
       ephemeral: true,
      });
     });
