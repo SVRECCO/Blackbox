@@ -98,14 +98,29 @@ const cmd = [
   description: "Clear the current queue",
  },
 ];
+// Autocomplete must answer within 3 seconds, so it reads from a cached scan instead of the disk.
+// ponytail: rescans every 5 minutes and after uploads, so new files can take up to 5 minutes to appear
+const cache = { files: [], dirs: [] };
+function refreshLibrary() {
+ const t = Date.now();
+ cache.files = listLibrary(false);
+ cache.dirs = listLibrary(true);
+ console.log(
+  `Scanned library: ${cache.files.length} songs, ${cache.dirs.length} folders (${Date.now() - t}ms)`,
+ );
+}
 async function handleAutocomplete(int) {
  const opt = int.options.getFocused(true);
  const q = opt.value.toLowerCase();
  // Discord caps choice names/values at 100 chars, so longer paths are skipped
- const lst = listLibrary(opt.name === "folder")
+ const lst = (opt.name === "folder" ? cache.dirs : cache.files)
   .filter((p) => p.length <= 100 && p.toLowerCase().includes(q))
   .slice(0, 25);
- await int.respond(lst.map((p) => ({ name: p, value: p })));
+ try {
+  await int.respond(lst.map((p) => ({ name: p, value: p })));
+ } catch (e) {
+  console.error("Autocomplete error:", e.message);
+ }
 }
 async function handleCommands(int) {
  const { commandName, options } = int;
@@ -244,6 +259,7 @@ async function handleCommands(int) {
 
     ws.on("finish", () => {
      ws.close();
+     refreshLibrary();
      int.followUp({
       content: `File "${fn}" has been uploaded successfully to ${folder || "the library"}!`,
       ephemeral: true,
@@ -330,6 +346,7 @@ module.exports = {
  commands: cmd,
  handleCommands,
  handleAutocomplete,
+ refreshLibrary,
  AUDIO_FOLDER: a_f,
  listLibrary,
  inLibrary,
