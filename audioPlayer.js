@@ -1,6 +1,6 @@
 const v = require("@discordjs/voice");
 const djs = require("discord.js");
-const pth = require("path");
+const { songName } = require("./library");
 const { addDJRole: add_dj, removeDJRole: rm_dj } = require("./utils");
 const st = {
  player: null,
@@ -61,11 +61,10 @@ async function ply(vc, fp, int) {
   }
   st.player.on(v.AudioPlayerStatus.Playing, () => {
    st.isPlaying = true;
-   const fn = pth.basename(fp);
    int.client.user.setPresence({
     activities: [
      {
-      name: fn,
+      name: songName(fp),
       type: djs.ActivityType.Listening,
      },
     ],

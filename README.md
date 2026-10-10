@@ -24,7 +24,8 @@
 - Basic playback controls (play, pause, resume, stop, skip)
 - Queue management
 - DJ role support
-- Auto-completion for song selection
+- Auto-completion for song selection, searchable by title, artist or filename
+- Reads song titles and artists from file tags (ID3 and others)
 
 ## Installation
 
@@ -57,7 +58,7 @@
 2. Add a bot to your application and copy the token
 3. Enable the required Gateway Intents (SERVER MEMBERS, MESSAGE CONTENT, PRESENCE)
 4. Invite the bot to your server with proper permissions
-5. Create a DJ role in your server and copy its ID (optional)
+5. Create a role named "DJ" (or set `DJ_ROLE_ID`) and drag the bot role above it in Server Settings > Roles (optional)
 6. Update your `.env` file with your bot token and DJ role ID
 7. Run the bot using `node index.js`
 

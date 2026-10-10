@@ -3,27 +3,14 @@ const fs = require("fs");
 const pth = require("path");
 const web = require("https");
 const { state: st, playNext: nxt } = require("./audioPlayer");
-const a_f = pth.resolve(process.env.AUDIO_FOLDER || "./audio");
-const AUDIO_EXT = [".mp3", ".wav", ".ogg", ".flac", ".m4a"];
-const isAudio = (f) => AUDIO_EXT.includes(pth.extname(f).toLowerCase());
-// Lists folders or audio files anywhere under the audio folder, as paths relative to it.
-// ponytail: walks the whole library on every call, cache it if a huge library makes autocomplete slow
-function listLibrary(dirs, base = "") {
- try {
-  return fs
-   .readdirSync(pth.join(a_f, base), { recursive: true, withFileTypes: true })
-   .filter((e) => (dirs ? e.isDirectory() : e.isFile() && isAudio(e.name)))
-   .map((e) => pth.relative(a_f, pth.join(e.parentPath ?? e.path, e.name)));
- } catch (e) {
-  console.error("Error reading audio folder:", e);
-  return [];
- }
-}
-// Resolves a user-supplied relative path, refusing anything outside the audio folder.
-function inLibrary(rel) {
- const p = pth.resolve(a_f, rel || "");
- return p === a_f || p.startsWith(a_f + pth.sep) ? p : null;
-}
+const {
+ AUDIO_FOLDER: a_f,
+ cache,
+ listLibrary,
+ inLibrary,
+ refreshLibrary,
+ songName,
+} = require("./library");
 const folderOption = {
  name: "folder",
  description: "Folder inside the music library (leave empty for the whole library)",
@@ -38,7 +25,7 @@ const cmd = [
   options: [
    {
     name: "filename",
-    description: "Start typing a song name",
+    description: "Start typing a song title, artist or filename",
     type: djs.ApplicationCommandOptionType.String,
     required: true,
     autocomplete: true,
@@ -98,26 +85,23 @@ const cmd = [
   description: "Clear the current queue",
  },
 ];
-// Autocomplete must answer within 3 seconds, so it reads from a cached scan instead of the disk.
-// ponytail: rescans every 5 minutes and after uploads, so new files can take up to 5 minutes to appear
-const cache = { files: [], dirs: [] };
-function refreshLibrary() {
- const t = Date.now();
- cache.files = listLibrary(false);
- cache.dirs = listLibrary(true);
- console.log(
-  `Scanned library: ${cache.files.length} songs, ${cache.dirs.length} folders (${Date.now() - t}ms)`,
- );
-}
 async function handleAutocomplete(int) {
  const opt = int.options.getFocused(true);
  const q = opt.value.toLowerCase();
- // Discord caps choice names/values at 100 chars, so longer paths are skipped
- const lst = (opt.name === "folder" ? cache.dirs : cache.files)
-  .filter((p) => p.length <= 100 && p.toLowerCase().includes(q))
-  .slice(0, 25);
+ const isFolder = opt.name === "folder";
+ // Songs show their tag title but are matched on title and path; the value sent back is the path.
+ // Discord caps values at 100 chars, so longer paths are skipped
+ const lst = (isFolder ? cache.dirs : cache.files)
+  .map((p) => ({ name: isFolder ? p : songName(p), value: p }))
+  .filter(
+   (c) =>
+    c.value.length <= 100 &&
+    (c.name + " " + c.value).toLowerCase().includes(q),
+  )
+  .slice(0, 25)
+  .map((c) => ({ name: c.name.slice(0, 100), value: c.value }));
  try {
-  await int.respond(lst.map((p) => ({ name: p, value: p })));
+  await int.respond(lst);
  } catch (e) {
   console.error("Autocomplete error:", e.message);
  }
@@ -144,7 +128,7 @@ async function handleCommands(int) {
    }
    st.queue.push({ path: fp, requester: int.user });
    int.followUp({
-    content: `Added "${pth.basename(fp)}" to the queue.`,
+    content: `Added "${songName(fp)}" to the queue.`,
     ephemeral: true,
    });
    if (!st.isPlaying) {
@@ -348,6 +332,4 @@ module.exports = {
  handleAutocomplete,
  refreshLibrary,
  AUDIO_FOLDER: a_f,
- listLibrary,
- inLibrary,
 };
