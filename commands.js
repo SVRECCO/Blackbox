@@ -3,18 +3,34 @@ const fs = require("fs");
 const pth = require("path");
 const web = require("https");
 const { state: st, playNext: nxt } = require("./audioPlayer");
-const g_s = [
- "pop",
- "rock",
- "alt rock",
- "heavy metal",
- "hip-hop",
- "rap",
- "classical",
- "electronic",
- "other",
-];
-const a_f = process.env.AUDIO_FOLDER || "./audio";
+const a_f = pth.resolve(process.env.AUDIO_FOLDER || "./audio");
+const AUDIO_EXT = [".mp3", ".wav", ".ogg", ".flac", ".m4a"];
+const isAudio = (f) => AUDIO_EXT.includes(pth.extname(f).toLowerCase());
+// Lists folders or audio files anywhere under the audio folder, as paths relative to it.
+// ponytail: walks the whole library on every call, cache it if a huge library makes autocomplete slow
+function listLibrary(dirs, base = "") {
+ try {
+  return fs
+   .readdirSync(pth.join(a_f, base), { recursive: true, withFileTypes: true })
+   .filter((e) => (dirs ? e.isDirectory() : e.isFile() && isAudio(e.name)))
+   .map((e) => pth.relative(a_f, pth.join(e.parentPath ?? e.path, e.name)));
+ } catch (e) {
+  console.error("Error reading audio folder:", e);
+  return [];
+ }
+}
+// Resolves a user-supplied relative path, refusing anything outside the audio folder.
+function inLibrary(rel) {
+ const p = pth.resolve(a_f, rel || "");
+ return p === a_f || p.startsWith(a_f + pth.sep) ? p : null;
+}
+const folderOption = {
+ name: "folder",
+ description: "Folder inside the music library (leave empty for the whole library)",
+ type: djs.ApplicationCommandOptionType.String,
+ required: false,
+ autocomplete: true,
+};
 const cmd = [
  {
   name: "play",
@@ -22,31 +38,18 @@ const cmd = [
   options: [
    {
     name: "filename",
-    description: "The name of the audio file to play",
+    description: "Start typing a song name",
     type: djs.ApplicationCommandOptionType.String,
     required: true,
     autocomplete: true,
-   },
-   {
-    name: "genre",
-    description: "Genre subfolder (leave empty for the main audio folder)",
-    type: djs.ApplicationCommandOptionType.String,
-    required: false,
-    choices: g_s.map((g) => ({ name: g, value: g })),
    },
   ],
  },
  {
   name: "playall",
-  description: "Play all audio files from a genre",
+  description: "Play all audio files in a folder (including its subfolders)",
   options: [
-   {
-    name: "genre",
-    description: "Genre subfolder (leave empty for the main audio folder)",
-    type: djs.ApplicationCommandOptionType.String,
-    required: false,
-    choices: g_s.map((g) => ({ name: g, value: g })),
-   },
+   folderOption,
    {
     name: "shuffle",
     description: "Shuffle the songs before playing",
@@ -71,13 +74,7 @@ const cmd = [
     type: djs.ApplicationCommandOptionType.Attachment,
     required: true,
    },
-   {
-    name: "genre",
-    description: "Genre subfolder (leave empty for the main audio folder)",
-    type: djs.ApplicationCommandOptionType.String,
-    required: false,
-    choices: g_s.map((g) => ({ name: g, value: g })),
-   },
+   folderOption,
   ],
  },
  {
@@ -101,17 +98,19 @@ const cmd = [
   description: "Clear the current queue",
  },
 ];
+async function handleAutocomplete(int) {
+ const opt = int.options.getFocused(true);
+ const q = opt.value.toLowerCase();
+ // Discord caps choice names/values at 100 chars, so longer paths are skipped
+ const lst = listLibrary(opt.name === "folder")
+  .filter((p) => p.length <= 100 && p.toLowerCase().includes(q))
+  .slice(0, 25);
+ await int.respond(lst.map((p) => ({ name: p, value: p })));
+}
 async function handleCommands(int) {
  const { commandName, options } = int;
  if (commandName === "play") {
-  const gen = options.getString("genre") || "";
   const fn = options.getString("filename");
-  if (!fn) {
-   return int.reply({
-    content: "Please provide a filename to play!",
-    ephemeral: true,
-   });
-  }
   const vc = int.member.voice.channel;
   if (!vc) {
    return int.reply({
@@ -121,20 +120,16 @@ async function handleCommands(int) {
   }
   try {
    await int.deferReply({ ephemeral: true });
-   const fp = pth.join(a_f, gen, fn);
-   if (!fs.existsSync(fp)) {
+   const fp = inLibrary(fn);
+   if (!fp || !fs.existsSync(fp) || !fs.statSync(fp).isFile()) {
     return int.followUp({
      content: "The specified audio file does not exist.",
      ephemeral: true,
     });
    }
-   st.queue.push({
-    path: fp,
-    requester: int.user,
-    genre: gen,
-   });
+   st.queue.push({ path: fp, requester: int.user });
    int.followUp({
-    content: `Added "${fn}" (${gen || "main folder"}) to the queue.`,
+    content: `Added "${pth.basename(fp)}" to the queue.`,
     ephemeral: true,
    });
    if (!st.isPlaying) {
@@ -149,9 +144,10 @@ async function handleCommands(int) {
    });
   }
  } else if (commandName === "playall") {
-  const genre = options.getString("genre") || "";
+  const folder = options.getString("folder") || "";
   const shuffle = options.getBoolean("shuffle") || false;
   const loop = options.getBoolean("loop") || false;
+  const label = folder || "the library";
   const vc = int.member.voice.channel;
 
   if (!vc) {
@@ -163,24 +159,22 @@ async function handleCommands(int) {
 
   try {
    await int.deferReply({ ephemeral: true });
-   const genrePath = pth.join(a_f, genre);
+   const dir = inLibrary(folder);
 
-   if (!fs.existsSync(genrePath)) {
+   if (!dir || !fs.existsSync(dir)) {
     return int.followUp({
-     content: `The folder "${pth.join(a_f, genre)}" does not exist.`,
+     content: `The folder "${folder}" does not exist.`,
      ephemeral: true,
     });
    }
 
-   const files = fs.readdirSync(genrePath);
-   const audioFiles = files.filter((file) => {
-    const ext = pth.extname(file).toLowerCase();
-    return [".mp3", ".wav", ".ogg", ".flac", ".m4a"].includes(ext);
-   });
+   const audioFiles = listLibrary(false, pth.relative(a_f, dir)).map((f) =>
+    pth.join(a_f, f),
+   );
 
    if (audioFiles.length === 0) {
     return int.followUp({
-     content: `No audio files found in "${genre || "the main folder"}".`,
+     content: `No audio files found in ${label}.`,
      ephemeral: true,
     });
    }
@@ -192,26 +186,15 @@ async function handleCommands(int) {
     }
    }
 
-   if (loop) {
-    st.loopMode = true;
-    st.loopGenre = genre;
-    st.loopFiles = [...audioFiles];
-   } else {
-    st.loopMode = false;
-    st.loopGenre = null;
-    st.loopFiles = [];
-   }
+   st.loopMode = loop;
+   st.loopFiles = loop ? [...audioFiles] : [];
 
    for (const file of audioFiles) {
-    st.queue.push({
-     path: pth.join(genrePath, file),
-     requester: int.user,
-     genre: genre,
-    });
+    st.queue.push({ path: file, requester: int.user });
    }
 
    int.followUp({
-    content: `Added ${audioFiles.length} ${genre || "main folder"} songs to the queue${
+    content: `Added ${audioFiles.length} songs from ${label} to the queue${
      shuffle ? " (shuffled)" : ""
     }${loop ? " (looping enabled)" : ""}.`,
     ephemeral: true,
@@ -230,26 +213,30 @@ async function handleCommands(int) {
   }
  } else if (commandName === "upload") {
   const f = options.getAttachment("file");
-  const gen = options.getString("genre") || "";
+  const folder = options.getString("folder") || "";
   if (!f) {
    return int.reply({
     content: "Please provide an audio file to upload.",
     ephemeral: true,
    });
   }
-  if (!f.contentType.startsWith("audio/")) {
+  if (!f.contentType || !f.contentType.startsWith("audio/")) {
    return int.reply({
     content: "The uploaded file is not an audio file.",
     ephemeral: true,
    });
   }
-  await int.deferReply({ ephemeral: true });
-  const fn = `${Date.now()}_${f.name}`;
-  const fp = pth.join(a_f, gen, fn);
-  const dir = pth.join(a_f, gen);
-  if (!fs.existsSync(dir)) {
-   fs.mkdirSync(dir, { recursive: true });
+  const dir = inLibrary(folder);
+  if (!dir) {
+   return int.reply({
+    content: "That folder is outside the music library.",
+    ephemeral: true,
+   });
   }
+  await int.deferReply({ ephemeral: true });
+  const fn = `${Date.now()}_${pth.basename(f.name)}`;
+  const fp = pth.join(dir, fn);
+  fs.mkdirSync(dir, { recursive: true });
   web
    .get(f.url, (res) => {
     const ws = fs.createWriteStream(fp);
@@ -258,7 +245,7 @@ async function handleCommands(int) {
     ws.on("finish", () => {
      ws.close();
      int.followUp({
-      content: `File "${fn}" has been uploaded successfully to ${gen || "the main folder"}!`,
+      content: `File "${fn}" has been uploaded successfully to ${folder || "the library"}!`,
       ephemeral: true,
      });
     });
@@ -306,7 +293,6 @@ async function handleCommands(int) {
   }
   st.queue.length = 0;
   st.loopMode = false;
-  st.loopGenre = null;
   st.loopFiles = [];
   int.client.user.setPresence({
     activities: [
@@ -343,6 +329,8 @@ async function handleCommands(int) {
 module.exports = {
  commands: cmd,
  handleCommands,
- GENRES: g_s,
+ handleAutocomplete,
  AUDIO_FOLDER: a_f,
+ listLibrary,
+ inLibrary,
 };

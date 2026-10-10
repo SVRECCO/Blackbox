@@ -12,14 +12,14 @@
 </div>
 
 <div align="center">
-  <p>Blackbox is an open-source Discord bot that plays music files from a server folder. Instead of streaming from external sources, Blackbox manages a local library of audio files organized by genre!</p>
+  <p>Blackbox is an open-source Discord bot that plays music files from a server folder. Instead of streaming from external sources, Blackbox plays a local library of audio files from any folder you point it at!</p>
 </div>
 
 
 ## Features
 
 - Play local audio files from server folders
-- Organize music by genres
+- Point it at any music folder; subfolders are detected automatically
 - Upload audio files directly through Discord
 - Basic playback controls (play, pause, resume, stop, skip)
 - Queue management
@@ -63,28 +63,29 @@
 
 ## Commands
 
-- `/play [genre] [filename]` - Play an audio file from the specified genre
-- `/upload [file] [genre]` - Upload an audio file to the server
+- `/play [filename]` - Search the whole library and play a song
+- `/playall [folder] [shuffle] [loop]` - Play every song in a folder and its subfolders (or the whole library)
+- `/upload [file] [folder]` - Upload an audio file to the library
 - `/pause` - Pause the current song
 - `/resume` - Resume the current song
 - `/stop` - Stop the current song and clear the queue
 - `/skip` - Skip to the next song in the queue
 - `/clearqueue` - Clear the current queue
 
+## Music Library
+
+`AUDIO_FOLDER` can point at any folder, for example your own Music folder. Use forward slashes and quotes:
+
+```
+AUDIO_FOLDER="C:/Users/Your Name/Music"
+```
+
+Organize it however you like. Subfolders (artist, album, genre, anything) are picked up automatically and show up in the `folder` autocomplete. Supported formats: mp3, wav, ogg, flac, m4a.
+
 ## Folder Structure
 
 ```
 blackbox/
-├── audio/
-│   ├── pop/
-│   ├── rock/
-│   ├── alt rock/
-│   ├── heavy metal/
-│   ├── hip-hop/
-│   ├── rap/
-│   ├── classical/
-│   ├── electronic/
-│   └── other/
 ├── index.js
 ├── commands.js
 ├── audioPlayer.js

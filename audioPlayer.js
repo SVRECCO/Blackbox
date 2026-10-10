@@ -1,34 +1,28 @@
 const v = require("@discordjs/voice");
 const djs = require("discord.js");
 const pth = require("path");
-const a_f = process.env.AUDIO_FOLDER || "./audio";
 const { addDJRole: add_dj, removeDJRole: rm_dj } = require("./utils");
 const st = {
  player: null,
  isPlaying: false,
  queue: [],
  loopMode: false,
- loopGenre: null,
  loopFiles: [],
 };
 async function nxt(vc, int) {
  if (st.queue.length > 0) {
   st.isPlaying = true;
   const trk = st.queue.shift();
-  await ply(vc, trk.path, int, trk.requester, trk.genre);
+  await ply(vc, trk.path, int);
  } else if (st.loopMode && st.loopFiles.length > 0) {
   st.isPlaying = true;
 
   for (const file of st.loopFiles) {
-   st.queue.push({
-    path: pth.join(a_f, st.loopGenre, file),
-    requester: int.user,
-    genre: st.loopGenre,
-   });
+   st.queue.push({ path: file, requester: int.user });
   }
 
   const trk = st.queue.shift();
-  await ply(vc, trk.path, int, trk.requester, trk.genre);
+  await ply(vc, trk.path, int);
  } else {
   st.isPlaying = false;
   int.client.user.setActivity(null);
