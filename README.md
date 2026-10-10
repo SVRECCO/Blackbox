@@ -107,8 +107,8 @@ blackbox/
 ![nodemon](https://img.shields.io/badge/nodemon-76D04B?style=flat-square&logo=nodemon&logoColor=white) - Development dependency for auto-restarting
 
 ### Runtime Requirements
-![Node.js](https://img.shields.io/badge/Node.js_v16.9.0+-43853D?style=flat-square&logo=node.js&logoColor=white)
-![FFmpeg](https://img.shields.io/badge/FFmpeg-007808?style=flat-square&logo=ffmpeg&logoColor=white) (for audio processing)
+![Node.js](https://img.shields.io/badge/Node.js_v22.12.0+-43853D?style=flat-square&logo=node.js&logoColor=white)
+![FFmpeg](https://img.shields.io/badge/FFmpeg-007808?style=flat-square&logo=ffmpeg&logoColor=white) (bundled via ffmpeg-static, no separate install needed)
 
 ## License
 

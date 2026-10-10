@@ -18,7 +18,7 @@ const bot = new djs.Client({
 fs.mkdirSync(a_f, { recursive: true });
 refreshLibrary();
 setInterval(refreshLibrary, 5 * 60 * 1000);
-bot.once("ready", async () => {
+bot.once("clientReady", async () => {
  console.log(`Bot is ready! Logged in as ${bot.user.tag}`);
  console.log(`Music library: ${a_f}`);
  await bot.application.commands.set(require("./commands").commands);
